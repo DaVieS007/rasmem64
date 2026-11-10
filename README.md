@@ -65,7 +65,17 @@ cd sys/modules/rasmem && make && make install
 cd usr.sbin/rasmemstat && make && make install     # installs to /usr/local/sbin
 ```
 
-Add to `/boot/loader.conf`:
+## Load Runtime
+```sh
+kldload rasmem
+```
+and check the update after 60 seconds with 
+```sh
+rasmemstat
+```
+
+For Boot time check and permanent install 
+`/boot/loader.conf`:
 
 ```sh
 rasmem_load="YES"
@@ -77,8 +87,10 @@ ram_blacklist_type="ram_blacklist"
 ram_blacklist_name="/boot/rasmem_blacklist.txt"
 ```
 
-Reboot, then create the two files once with `sysctl hw.rasmem.save=1`, and
+Reboot, then create the database and blacklist files if they missing with `sysctl hw.rasmem.save=1`, and
 run `rasmemstat`. Keys `1`–`5` switch views, and `?` lists all keys.
+
+To disable continous scan set `hw.rasmem.enable="0"` in loader.conf
 
 ## Documentation
 
