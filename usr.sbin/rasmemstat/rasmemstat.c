@@ -1904,15 +1904,14 @@ static int map_state(const struct snap *x, uint64_t c0, uint64_t c1, uint8_t bad
 			share += x->share[c];
 			held += (v & RASMEM_MAP_HELD) != 0;
 		}
-		if (full * 2 >= nc)
-		{
-			return (S_FULL);
-		}
 		share /= vis;			/* 0-255 */
-		/* Under 90% tested: the rest was in use, or held. */
+		/*
+		 * Memory in use now is shown as in use, even if it was fully
+		 * tested earlier: green only where this pass could test it.
+		 */
 		if (share >= 230)
 		{
-			return (S_PASS);
+			return (full * 2 >= nc ? S_FULL : S_PASS);
 		}
 		if (held * 2 >= vis)
 		{
@@ -1931,17 +1930,13 @@ static int map_state(const struct snap *x, uint64_t c0, uint64_t c1, uint8_t bad
 		share += x->pshare[c];
 		held += (v & RASMEM_MAP_PREV_HELD) != 0;
 	}
-	if (full * 2 >= nc && full > 0)
-	{
-		return (S_FULL_OLD);
-	}
 	if (known * 2 < nc || known == 0)
 	{
-		return (S_NONE);
+		return (full * 2 >= nc && full > 0 ? S_FULL_OLD : S_NONE);
 	}
 	if (share / known >= 230)
 	{
-		return (S_PREV);
+		return (full * 2 >= nc ? S_FULL_OLD : S_PREV);
 	}
 	if (held * 2 >= known)
 	{
