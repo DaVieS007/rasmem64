@@ -1,0 +1,227 @@
+.\" SPDX-License-Identifier: BSD-2-Clause
+.\"
+.\" Copyright (c) 2026 Viktor Hlavaji (DaVieS) <davies@npulse.net>
+.\" All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.Dd November 10, 2026
+.Dt RASMEMSTAT 8
+.Os
+.Sh NAME
+.Nm rasmemstat
+.Nd display the state of the rasmem RAS memory test suite (beta)
+.Sh SYNOPSIS
+.Nm
+.Op Fl m
+.Op Fl V Ar view
+.Op Fl a Ar seconds
+.Op Fl s Cm e | a | t
+.Op Fl w Ar seconds
+.Op Fl -no-color
+.Nm
+.Fl 1
+.Op Fl dFm
+.Op Fl V Ar view
+.Op Fl n Ar rows
+.Op Fl s Cm e | a | t
+.Nm
+.Fl J
+.Op Fl w Ar seconds
+.Nm
+.Fl f Ar dbfile
+.Op Fl Jm
+.Op Fl s Cm e | a | t
+.Nm
+.Fl v
+.Sh DESCRIPTION
+.Nm
+shows the state of the
+.Nm rasmem
+kernel module.
+On a terminal it runs full screen and refreshes every second; the
+information is split into views selected with keys:
+.Bl -tag -width "1 Overview"
+.It Cm 1 No Overview
+Health and its reasons, bad page counts, the current pass of the
+periodic scan, boot test result, read-only checksums, database state,
+a one-line coverage map and the worst bad pages.
+.It Cm 2 No Map
+The coverage map: all RAM in physical address order, one
+.Ql #
+per block, coloured by state:
+bright green, fully tested (patterns, March C- and a retention hold on the
+whole block, without an error, accumulated over passes and the boot test);
+white, tested in the current pass;
+pale orange, orange and dark orange, partly tested (50\(en90%, 10\(en50% and
+under 10% of the block; the rest was in use);
+purple, the same, but the untested part was free memory held in partly
+used superpage reservations;
+green, fully tested earlier but not yet reached in this pass;
+grey, tested in the previous pass or at boot.
+.Ql \&.
+is never tested,
+.Ql @
+is where the scan is now, and
+.Ql X
+and
+.Ql \&!
+are bad pages, isolated or not.
+Without colours the states are shown as
+.Ql # ,
+.Ql + ,
+.Ql = ,
+.Ql ~ ,
+.Ql - ,
+.Ql h ,
+and
+.Ql \&:
+in that order.
+Address gaps (holes) are left out; the row labels give the physical
+address.
+The scan visits memory in 8 MiB slots spread over all of RAM (see
+.Va hw.rasmem.scan_order ) ,
+so the blocks of the current pass are scattered over the map rather than
+filling it from the bottom.
+.It Cm 3 No Bad pages
+Every recorded bad page with its class, state, module, error and retest
+counters, how it was found and the data bits that flipped, followed by a
+legend of the values shown.
+.It Cm 4 No Modules
+Memory modules from SMBIOS with their bad page counts.
+.It Cm 5 No Details
+Everything else: activity, rates, pass history, scan policy, in-use memory,
+retries, allocator, retests, boot test phases and database.
+.El
+.Pp
+Other keys:
+arrows, PgUp, PgDn, Home and End scroll;
+Tab and Left/Right cycle the views;
+.Cm s
+changes the sort order,
+.Cm m
+merges adjacent bad pages,
+.Cm l
+toggles the legend,
+.Cm + No and Cm -
+change the refresh interval,
+.Cm r
+refreshes now,
+.Cm \&?
+shows the keys and
+.Cm q
+quits.
+.Pp
+When the output is not a terminal, or with
+.Fl 1 ,
+.Nm
+prints the overview and all bad pages (or the view chosen with
+.Fl V )
+instead.
+Colors are used on a terminal unless
+.Fl -no-color
+is given or
+.Ev NO_COLOR
+is set.
+.Pp
+The options are as follows:
+.Bl -tag -width indent
+.It Fl 1 , Fl -once
+Print once and exit.
+.It Fl V Ar view , Fl -view Ar view
+The view to start with, or to print with
+.Fl 1 :
+.Cm overview , map , pages , modules , details
+or
+.Cm all .
+.It Fl F , Fl -full
+Print everything, as
+.Fl V Cm all .
+.It Fl J , Fl -json
+JSON output.
+Without
+.Fl w ,
+one pretty-printed document is printed.
+With
+.Fl w ,
+one compact JSON object per line is printed every interval, suitable for
+log shippers and monitoring agents.
+Combined with
+.Fl f ,
+the database file is dumped as JSON.
+.It Fl d , Fl -modules
+List the memory modules, as
+.Fl V Cm modules .
+.It Fl f Ar dbfile , Fl -file Ar dbfile
+Dump a database file written by the module (normally
+.Pa /boot/rasmem.db )
+without needing the module to be loaded.
+.It Fl m , Fl -merge
+Merge physically adjacent pages with the same class and state into one row.
+.It Fl n Ar rows , Fl -rows Ar rows
+Print at most
+.Ar rows
+bad pages.
+.It Fl s Cm e | a | t , Fl -sort Cm e | a | t
+Sort by error count (default), address or time of the last error.
+.It Fl w Ar seconds , Fl -wait Ar seconds
+Refresh interval (default 1).
+.It Fl a Ar seconds , Fl -avg Ar seconds
+Average the test rate over this many seconds (default 60).
+The module tests in bursts every
+.Va hw.rasmem.interval
+milliseconds (1 s by default), so a short window shows mostly zero.
+.It Fl v , Fl -version
+Print the versions of
+.Nm
+and of the loaded kernel module, and exit.
+.It Fl -no-color
+Do not use ANSI colors.
+.El
+.Sh FILES
+.Bl -tag -width indent -compact
+.It Pa /boot/rasmem.db
+bad page database
+.It Pa /boot/rasmem_blacklist.txt
+page list for the loader's
+.Va ram_blacklist
+.El
+.Sh SEE ALSO
+.Xr mca 4 ,
+.Xr sysctl 8
+.Pp
+The coverage map is read from
+.Va hw.rasmem.map .
+.Sh HISTORY
+.Nm
+first appeared in rasmem 0.1.0, a beta release
+(the pre-release test builds were numbered 0.0.9b).
+.Sh AUTHORS
+.An Viktor Hlavaji Aq Mt davies@npulse.net ,
+developed with the assistance of Claude (Anthropic), an AI assistant.
+.Sh BUGS
+rasmem is a beta test suite with limited testing on physical hardware.
+On machines with ECC memory, errors corrected by the hardware are reported
+by
+.Xr mca 4
+only; rasmem does not read them yet.
+Please report problems with the output of
+.Nm Fl J .
