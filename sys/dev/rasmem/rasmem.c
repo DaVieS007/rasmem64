@@ -2389,9 +2389,10 @@ static void rasmem_boot_wait(bool console)
 	sbintime_t next_report;
 	uint64_t done, total;
 	int n, pct, last;
-	bool key;
+	bool key, global_shown;
 
-	printf("Testing Memory ...\n");
+	/* Boot stops here until the test ends: say so on the console. */
+	printf("Testing Memory ...%s\n", console ? " press any key to abort" : "");
 	if (console)
 	{
 		cngrab();
@@ -2399,8 +2400,8 @@ static void rasmem_boot_wait(bool console)
 		for (n = 0; n < 256 && rasmem_cons_key(); n++)
 		{
 		}
-		RAS_LOG("press any key to abort the memory test\n");
 	}
+	global_shown = false;
 	last = -1;
 	next_report = sbinuptime() + 2 * SBT_1S;
 	mtx_lock(&rasmem_mtx);
@@ -2441,6 +2442,13 @@ static void rasmem_boot_wait(bool console)
 		}
 		if (rasmem_st.phase == RASMEM_PHASE_GLOBAL)
 		{
+			if (!global_shown)
+			{
+				global_shown = true;
+				mtx_unlock(&rasmem_mtx);
+				printf("Testing Memory ... address test over all free memory\n");
+				mtx_lock(&rasmem_mtx);
+			}
 			if (RAS_VERBOSE())
 			{
 				printf("rasmem: global address test: %ju MiB held\n", (uintmax_t)(ptoa(rasmem_st.global_pages) >> 20));
@@ -2453,7 +2461,7 @@ static void rasmem_boot_wait(bool console)
 		if (pct / 10 != last / 10 || RAS_VERBOSE())
 		{
 			mtx_unlock(&rasmem_mtx);
-			printf("rasmem: boot test %d%% (%ju/%ju MiB, %u error(s))%s\n", pct, (uintmax_t)(ptoa(rasmem_st.boot_pages_tested) >> 20), (uintmax_t)(ptoa(rasmem_st.phys_pages) >> 20), rasmem_st.errors_boot, console ? ", press any key to abort" : "");
+			printf("Testing Memory ... %d%% (%ju/%ju MiB, %u error(s))%s\n", pct, (uintmax_t)(ptoa(rasmem_st.boot_pages_tested) >> 20), (uintmax_t)(ptoa(rasmem_st.phys_pages) >> 20), rasmem_st.errors_boot, console ? ", press any key to abort" : "");
 			mtx_lock(&rasmem_mtx);
 			last = pct;
 		}
