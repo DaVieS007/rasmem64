@@ -2079,8 +2079,8 @@ static void map_legend(void)
 	legend_item(S_PREV, "tested last pass/boot", 27);
 	legend_item(S_FULL_OLD, "fully tested earlier", 0);
 	fputs("\n  ", out);
-	fputs("partly, rest in use: ", out);
-	legend_item(S_MOST, "50-90%", 10);
+	fputs("partly tested (rest in use): ", out);
+	legend_item(S_MOST, "50-90% tested", 17);
 	legend_item(S_PART, "10-50%", 10);
 	legend_item(S_BUSY, "under 10%", 13);
 	legend_item(S_HELD, "free, held by the VM", 0);

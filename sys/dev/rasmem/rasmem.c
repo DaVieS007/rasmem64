@@ -1951,16 +1951,22 @@ static void rasmem_phase1(void *dummy __unused)
 	rasmem_recs = malloc(rasmem_rec_cap * sizeof(*rasmem_recs), M_RASMEM, M_WAITOK | M_ZERO);
 	rasmem_nrec = 0;
 
+	/*
+	 * Before anything reads page structures, including the segment
+	 * check in rasmem_segs_init(): on FreeBSD 15+ the page structures of
+	 * free memory are initialized lazily, and an uninitialized one does
+	 * not know its own address yet.
+	 */
+	rasmem_vm_init_pages();
 	if (rasmem_segs_init() == 0)
 	{
 		RAS_LOG("physical memory layout not usable, disabled\n");
 		free(rasmem_recs, M_RASMEM);
 		rasmem_recs = NULL;
+		rasmem_segs_fini();
 		return;
 	}
 	rasmem_st.phys_pages = rasmem_segs_pages();
-	/* Before anything reads page structures (FreeBSD 15+ lazy init). */
-	rasmem_vm_init_pages();
 	rasmem_hints_check(rasmem_page_hints != 0);
 	rasmem_page_hints = rasmem_hints_enabled();
 	rasmem_map_init();
